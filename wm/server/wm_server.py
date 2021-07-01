@@ -37,7 +37,7 @@ class DataSource(object):
             f = open(path, "rb")
             type = "text/plain"
         elif os.path.isfile(path + ".gz")
-            f = gzip.open(path, "rt")
+            f = open(path, "b")
             type = "application/x-gzip"
         return f, type
         
