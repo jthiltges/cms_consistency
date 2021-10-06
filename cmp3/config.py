@@ -1,5 +1,10 @@
-from __future__ import print_function
 import yaml, re, os, configparser
+
+from rucio.client.configclient import ConfigClient
+from rucio.client.rseclient import RSEClient
+from rucio.common.exception import ConfigNotFound
+
+CONFIG_SECTION_PREFIX = "consistency_enforcement"
 
 class DBConfig:
 
@@ -37,132 +42,88 @@ class DBConfig:
             dburl = "oracle+cx_oracle://%s:%s@%s:%s/?service_name=%s" % (
                                     user, password, host, port, service)
         return DBConfig(schema, dburl)
-    
         
+class BaseConfig(object):
     
+    def ignore_patterns(self):
+        lst = self.IgnoreList       # list of absolute paths or regexp patterns, used by scanner and cmp3
+        dir_patterns = []
+        for p in lst:
+            try:    p = re.compile("%s(/.*)?$" % (p,))
+            except:
+                p = re.compile(p)
+            dir_patterns.append(p)
+        file_patterns = []
+        for p in lst:
+            p = re.compile("%s/.+" % (p,))
+            file_patterns.append(p)
+        return dir_patterns, file_patterns
 
-class Config:
-        def __init__(self, cfg_file_path):
-                cfg = yaml.load(open(cfg_file_path, "r"), Loader=yaml.SafeLoader)
-                self.Config = cfg
-                self.Defaults = cfg["rses"].get("*", {})
-                self.RSEs = cfg["rses"]
+class DefaultsConfig(BaseConfig):
+    """
+    roots = express mc data generator results hidata himc relval
+    recursion = 1
+    nworkers = 8
+    timeout = 300
+    server_root = /store/
+    remove_prefix = /
+    add_prefix = /store/
+    include_sizes = yes
 
-        def rsecfg(self, rse_name):
-                cfg = {}
-                cfg.update(self.RSEs.get("*", {}))
-                cfg.update(self.RSEs.get(rse_name, {}))
-                return cfg
+    """
+    
+    def __init__(self):
 
-        def get_by_path(self, *path, default=None):
-            c = self.Config
-            for p in path[:-1]:
-                c1 = c.get(p, None)
-                if not c1:
-                    return default
-                c = c1
-            return c.get(path[-1], default)
+        config_client = ConfigClient()
 
-        def general_param(self, rse_name, param, default=None):
-            return self.get_by_path("rses", rse_name, param, 
-                    default = self.get_by_path("rses", "*", param, default=default))
-                    
-        rse_param = general_param
+        cfg = config_client.get_config(CONFIG_SECTION_PREFIX)
+        self.IgnoreList = [x.strip() for x in cfg.get("ignore","").split()]
+        self.IgnoreList = [x for x in self.IgnoreList if x]
+        self.NPartitions = int(cfg.get("partitions", 5))
 
-        def scanner_root_config(self, rse_name, root):
-            lst = self.scanner_param(rse_name, "roots", self.scanner_param("*", "roots", []))
-            for d in lst:
-                if d["path"] == root:
-                    return d
-            return {}
+        cfg = config_client.get_config(CONFIG_SECTION_PREFIX + ".scanner")
+        self.ServerRoot = cfg.get("server_root", "/store/")
+        self.ScannerTimeout = int(cfg.get("timeout", 300))
+        self.RootList = [x.strip() for x in cfg.get("roots","").split()]
+        self.RootList = [x for x in self.RootList if x]
+        self.RemovePrefix = cfg.get("remove_prefix", "/")
+        self.AddPrefix = cfg.get("add_prefix", "/store/")
+        self.NWorkers = int(cfg.get("nworkers", 8))
+        self.IncludeSizes = cfg.get("include_sizes", "yes") == "yes"
+        self.RecursionThreshold = int(cfg.get("recursion", 1))
+        
+        cfg = config_client.get_config(CONFIG_SECTION_PREFIX + ".db_dump")
+        self.DBDumpPathRoot = cfg.get("path_root", "/")
             
-        def scanner_param(self, rse_name, param, default=None, root=None):
-            #
-            # Param lookup order if root is specified:
-            # 1. rses->rse->root->param
-            # 2. rses->*->root->param
-            # 3. rses->rse->param
-            # 4. rses->*->param
-            #
-            # If no root specified:
-            # 1. rses->rse->param
-            # 2. rses->*->param
-            # 
-            if root:
-                cfg = self.scanner_root_config(rse_name, root)  # that will look in the rse-specific first and then "*"
-                value = cfg.get(param)
-                if value is None:   value = self.scanner_param(rse_name, param, default=default)
-            else:
-                default = self.get_by_path("rses", "*", "scanner", param, default=default)
-                value = self.get_by_path("rses", rse_name, "scanner", param, default=default)
-            return value
+    def get_root(self, root):
+        return self.RootConfigs[root]
+        
+class CombinedRSEConfig(BaseConfig):
+    
+    def __init__(self, defaults, rse):
+        self.__dict__.update(defaults.__dict__)     # copy defaults
+        cfg = RSEClient().list_rse_attributes(rse)
+        self.ServerURL = cfg[CONFIG_SECTION_PREFIX + ".scanner.server"]
+        self.ServerRoot = cfg.get(CONFIG_SECTION_PREFIX + ".scanner.server_root", 
+            self.ServerRoot)
+        self.IncludeSizes = cfg.get(CONFIG_SECTION_PREFIX + ".scanner.include_sizes",
+            self.IncludeSizes)
+        self.ScannerTimeout = cfg.get(CONFIG_SECTION_PREFIX + ".scanner.timeout", 
+            self.ScannerTimeout)
+        root_list = cfg.get(CONFIG_SECTION_PREFIX + ".scanner.roots")
+        if root_list:
+            root_list = [r.strip() for r in root_list.split(",") if r.strip()]
+            self.RootList = root_list
 
-        def import_param(self, rse_name, param, default=None):
-            default = self.get_by_path("rses", "*", "import", param, default=default)
-            value = self.get_by_path("rses", rse_name, "import", param, default=default)
-            return value
+Defaults = DefaultsConfig()
+RSE_Configs = {}
 
-        def dbdump_param(self, rse_name, param, default=None):
-            default = self.get_by_path("rses", "*", "dbdump", param, default=default)
-            return self.get_by_path("rses", rse_name, "dbdump", param, default=default)
-            
-        def dbdump_root(self, rse_name):
-            return self.dbdump_param(rse_name, "path_root", "/")
-
-        def nparts(self, rse_name):
-            return self.general_param(rse_name, "partitions", 10)
-
-        def ignore_list(self, rse_name):
-            return self.general_param(rse_name, "ignore_list", [])       # list of absolute paths or regexp patterns, used by scanner and cmp3
-
-        def ignore_patterns(self, rse_name):
-            lst = self.ignore_list(rse_name)       # list of absolute paths or regexp patterns, used by scanner and cmp3
-            dir_patterns = []
-            for p in lst:
-                try:    p = re.compile("%s(/.*)?$" % (p,))
-                except:
-                    p = re.compile(p)
-                dir_patterns.append(p)
-            file_patterns = []
-            for p in lst:
-                p = re.compile("%s/.+" % (p,))
-                file_patterns.append(p)
-            return dir_patterns, file_patterns
-            
-        def scanner_server_root(self, rse_name):
-            return self.scanner_param(rse_name, "server_root")
-
-        def scanner_roots(self, rse_name):
-            d = self.scanner_param(rse_name, "roots", [])
-            return [x["path"] for x in d]
-            
-        def scanner_remove_prefix(self, rse_name):
-            return self.scanner_param(rse_name, "remove_prefix")
-
-        def scanner_add_prefix(self, rse_name):
-            return self.scanner_param(rse_name, "add_prefix")
-
-        def scanner_filter(self, rse_name):
-            return self.scanner_param(rse_name, "filter")
-
-        def scanner_rewrite(self, rse_name):
-            dct = self.scanner_param(rse_name, "rewrite")
-            if not dct:
-                return None, None
-            return dct["path"], dct["out"]
-
-        def scanner_server(self, rse_name):
-            return self.scanner_param(rse_name, "server")
-
-        def scanner_workers(self, rse_name):
-            return self.scanner_param(rse_name, "nworkers", default=10)
-
-        def scanner_timeout(self, rse_name):
-            return self.scanner_param(rse_name, "timeout", default=60)
-
-        def scanner_recursion_threshold(self, rse_name, root):
-            return self.scanner_param(rse_name, "recursion", root=root, default=3)
-
-        def scanner_include_sizes(self, rse_name, default=True):
-            return self.scanner_param(rse_name, "include_sizes", default=default)
-
+def rse_config(rse):
+    global RSE_Configs
+    c = RSE_Configs.get(rse)
+    if c is None:
+        c = RSE_Configs[rse] = CombinedRSEConfig(Defaults, rse)
+    return c
+    
+def core_config():
+    return Defaults

@@ -15,7 +15,7 @@ try:
 except:
     Use_tqdm = False
 
-from config import Config
+from config import rse_config
 
 def truncated_path(root, path):
         if path == root:
@@ -477,7 +477,7 @@ class ScannerMaster(PyThread):
         if self.DisplayProgress:
             self.TQ.close()
                 
-    def purgeEmptyDirs(self):
+    def purgeEmptyDirs(self):           # not used, never tested
         if self.EmptyDirs:
             queue = TaskQueue(self.MaxScanners)
             for path in self.EmptyDirs:
@@ -487,7 +487,6 @@ class ScannerMaster(PyThread):
 Usage = """
 python xrootd_scanner.py [options] <rse>
     Options:
-    -c <config.yaml>            - config file, required
     -o <output file prefix>     - output will be sent to <output>.00000, <output>.00001, ...
     -t <timeout>                - xrdfs ls operation timeout (default 30 seconds)
     -m <max workers>            - default 5
@@ -498,6 +497,9 @@ python xrootd_scanner.py [options] <rse>
     -x                          - do not use metadata (ls -l), do not include file sizes
     -M <max_files>              - stop scanning the root after so many files were found
     -s <stats_file>             - write final statistics to JSON file
+
+    Deprecated:
+    -c <config.yaml>            - config file
 """
 
 def rewrite(path, path_prefix, remove_prefix, add_prefix, path_filter, rewrite_path, rewrite_out):
@@ -525,14 +527,14 @@ def rewrite(path, path_prefix, remove_prefix, add_prefix, path_filter, rewrite_p
     
 
 def scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_threshold, override_max_scanners, file_list, dir_list,
-    purge_empty_dirs, ignore_failed_directories, include_sizes):
+    ignore_failed_directories, include_sizes):
     
     failed = root_failed = False
     
-    timeout = override_timeout or config.scanner_timeout(rse)
+    timeout = override_timeout or config.ScannerTimeout
     top_path = root if root.startswith("/") else server_root + "/" + root
-    recursive_threshold = override_recursive_threshold or config.scanner_recursion_threshold(rse, root)
-    max_scanners = override_max_scanners or config.scanner_workers(rse)
+    recursive_threshold = override_recursive_threshold or config.RecursionThreshold
+    max_scanners = override_max_scanners or config.NWorkers
 
     t0 = time.time()
     root_stats = {
@@ -563,15 +565,17 @@ def scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_
         })
         root_failed = True
     else:
-        remove_prefix = config.scanner_remove_prefix(rse)
-        add_prefix = config.scanner_add_prefix(rse)
-        path_filter = config.scanner_filter(rse)
-        if path_filter is not None:
-            path_filter = re.compile(path_filter)
-        rewrite_path, rewrite_out = config.scanner_rewrite(rse)
-        if rewrite_path is not None:
-            assert rewrite_out is not None
-            rewrite_path = re.compile(rewrite_path)
+        remove_prefix = config.RemovePrefix
+        add_prefix = config.AddPefix
+        path_filter = rewrite_path = rewrite_out = None
+        if False:
+            path_filter = config.scanner_filter(rse)
+            if path_filter is not None:
+                path_filter = re.compile(path_filter)
+            rewrite_path, rewrite_out = config.scanner_rewrite(rse)
+            if rewrite_path is not None:
+                assert rewrite_out is not None
+                rewrite_path = re.compile(rewrite_path)
 
         print("Starting scan of %s:%s with:" % (server, top_path))
         print("  Include sizes       = %s" % include_sizes)
@@ -579,14 +583,14 @@ def scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_
         print("  Max scanner threads = %d" % max_scanners)
         print("  Timeout             = %s" % timeout)
         
-        ignore_list = config.ignore_list(rse)
+        ignore_list = config.IgnoreList
         if ignore_list:
             print("  Ignore list:")
             for p in ignore_list:
                 print("    ", p)
         
         master = ScannerMaster(server, top_path, recursive_threshold, max_scanners, timeout, quiet, display_progress,
-            max_files = max_files, ignore_patterns = config.ignore_patterns(rse), include_sizes=include_sizes)
+            max_files = max_files, ignore_patterns = config.ignore_patterns(), include_sizes=include_sizes)
         master.start()
 
         path_prefix = server_root
@@ -603,9 +607,6 @@ def scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_
                 if path:
                     dir_list.add(path) 
                     
-        if purge_empty_dirs:
-            master.purgeEmptyDirs()
-
         if display_progress:
             master.close_progress()
 
@@ -660,6 +661,7 @@ def scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_
     
 if __name__ == "__main__":
     import getopt, sys, time
+    from config import rse_config
 
     t0 = time.time()    
     opts, args = getopt.getopt(sys.argv[1:], "t:m:o:R:n:c:vqM:s:S:zd:kx")
@@ -670,8 +672,8 @@ if __name__ == "__main__":
         sys.exit(2)
 
     rse = args[0]
-    config = Config(opts.get("-c"))
-
+    #config = Config(opts.get("-c"))
+    config = rse_config(rse)
     quiet = "-q" in opts
     display_progress = not quiet and "-v" in opts
     override_recursive_threshold = int(opts.get("-R", 0))
@@ -690,7 +692,7 @@ if __name__ == "__main__":
     if "-n" in opts:
         nparts = int(opts["-n"])
     else:
-        nparts = config.nparts(rse)
+        nparts = config.NParts
 
     if nparts > 1:
         if not "-o" in opts:
@@ -705,10 +707,10 @@ if __name__ == "__main__":
     dir_output = opts.get("-d")
     dir_list = PartitionedList.create(nparts, dir_output, zout) if dir_output else None
 
-    server = config.scanner_server(rse)
-    server_root = config.scanner_server_root(rse)
-    include_sizes = config.scanner_include_sizes(rse) and not "-x" in opts
-    purge_empty_dirs = config.scanner_param(rse, "purge_empty_dirs", default=False)
+    server = config.ServerURL
+    server_root = config.ServerRoot
+    include_sizes = config.IncludeSizes and not "-x" in opts
+
     if not server_root:
         print(f"Server root is not defined for {rse}. Should be defined as 'server_root'")
         sys.exit(2)
@@ -736,7 +738,7 @@ if __name__ == "__main__":
         try:
             failed, root_failed = scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_threshold, 
                     override_max_scanners, out_list, dir_list,
-                    purge_empty_dirs, ignore_directory_scan_errors, include_sizes)
+                    ignore_directory_scan_errors, include_sizes)
             all_roots_failed = all_roots_failed and root_failed
         except:
             exc = traceback.format_exc()
