@@ -112,7 +112,7 @@ class CombinedRSEConfig(BaseConfig):
             self.ScannerTimeout)
         root_list = cfg.get(CONFIG_SECTION_PREFIX + ".scanner.roots")
         if root_list:
-            root_list = [r.strip() for r in root_list.split(",") if r.strip()]
+            root_list = [r.strip() for r in root_list.split() if r.strip()]
             self.RootList = root_list
 
 Defaults = DefaultsConfig()

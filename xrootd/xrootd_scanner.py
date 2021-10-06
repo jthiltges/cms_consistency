@@ -165,9 +165,9 @@ class Scanner(Task):
 
 
         try:    
-            #print(f"lscommand: {lscommand}")
+            print(f"lscommand: {lscommand}")
             retcode, out, err = ShellCommand.execute(lscommand, timeout=timeout)
-            #print(f"retcode: {retcode}")
+            print(f"retcode: {retcode}")
         except RuntimeError:
             status = "timeout"
         else:
@@ -566,7 +566,7 @@ def scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_
         root_failed = True
     else:
         remove_prefix = config.RemovePrefix
-        add_prefix = config.AddPefix
+        add_prefix = config.AddPrefix
         path_filter = rewrite_path = rewrite_out = None
         if False:
             path_filter = config.scanner_filter(rse)
@@ -667,7 +667,7 @@ if __name__ == "__main__":
     opts, args = getopt.getopt(sys.argv[1:], "t:m:o:R:n:c:vqM:s:S:zd:kx")
     opts = dict(opts)
     
-    if len(args) != 1 or not "-c" in opts:
+    if len(args) != 1:
         print(Usage)
         sys.exit(2)
 
@@ -692,7 +692,7 @@ if __name__ == "__main__":
     if "-n" in opts:
         nparts = int(opts["-n"])
     else:
-        nparts = config.NParts
+        nparts = config.NPartitions
 
     if nparts > 1:
         if not "-o" in opts:
@@ -734,7 +734,7 @@ if __name__ == "__main__":
     
     failed = False
     all_roots_failed = True
-    for root in config.scanner_roots(rse):
+    for root in config.RootList:
         try:
             failed, root_failed = scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_threshold, 
                     override_max_scanners, out_list, dir_list,
