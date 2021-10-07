@@ -4,37 +4,8 @@ Moving Consistency Enforcement into Rucio configuration
 Consistency Enformenet Procedures (CEP) will get their configuration from 2 sources in live Rucio instance:
 
 -  Rucio Configuration - part of Rucio database, which mimics popular .ini configuratiin file format.
-   This portion will be used to store common, RSE-independent configuration and RSE configuration defaults:
+   This portion will be used to store common, RSE-independent configuration and RSE configuration defaults.
 
-.. code-block:: 
-
-	[consistency_enforcement]
-	npartitions = 5
-	ignore = /store/backfill
-		/store/test
-		/store/unmerged
-		/store/temp
-
-	[consistency_enforcement.scanner]
-	server_root = /store/
-	timeout = 300
-	remove_prefix = /
-	add_prefix = /store/
-	nworkers = 8
-	recursion = 1
-	include_sizes = yes
-	roots = express
-	      mc
-	      data
-	      generator
-	      results
-	      hidata
-	      himc
-	      relval
-    
-	[consistency_enforcement.db_dump]
-    path_root = /
-    
 - RSE attributes will be used to store RSE-specific parameters such as xrootd server address and server root
   path, list of roots to scan.
 
