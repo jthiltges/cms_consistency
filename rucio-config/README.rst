@@ -12,28 +12,28 @@ Consistency Enformenet Procedures (CEP) will get their configuration from 2 sour
 Confuguration Conversion Procedure
 ----------------------------------
 
-    1. Have Rucio client configured and log in as Rucio root account
-    
-    2. After getting cms_consistency repositiory from github (https://github.com/ivmfnal/cms_consistency.git),
-       go to rucio-config subdirectory.
-       
-    3. Import defaults:
-    
-        .. code-block:: bash
-            
-            $ python import_cfg.py cc_defaults.cfg
-            
-    4. View the results
-    
-        .. code-block:: bash
-            
-            $ python export_cfg.py -s consistency_enforcement
-            
-    5. Import RSE-specific configuration
-    
-        .. code-block:: bash
-            
-            $ python import_rse_cfg.py <current_config.yaml>
+1. Have Rucio client configured and log in as Rucio root account
+
+2. After getting cms_consistency repositiory from github (https://github.com/ivmfnal/cms_consistency.git),
+   go to rucio-config subdirectory.
+   
+3. Import defaults:
+
+   .. code-block:: bash
+        
+        $ python import_cfg.py cc_defaults.cfg
+        
+4. View the results
+
+   .. code-block:: bash
+        
+        $ python export_cfg.py -s consistency_enforcement
+        
+5. Import RSE-specific configuration
+
+   .. code-block:: bash
+        
+        $ python import_rse_cfg.py <current_config.yaml>
             
 
         
