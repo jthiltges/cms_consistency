@@ -14,8 +14,15 @@ Confuguration Conversion Procedure
 
 1. Have Rucio client configured and log in as Rucio root account
 
-2. After getting cms_consistency repositiory from github (https://github.com/ivmfnal/cms_consistency.git),
-   go to rucio-config subdirectory.
+2. Pull the code repository
+
+   .. code-block:: bash
+   
+       $ git pull https://github.com/ivmfnal/cms_consistency.git cms-consistency-new
+       $ cd cms-consistency-new
+       $ git checkout config_in_rucio
+       $ cd rucio-config
+
    
 3. Import defaults:
 
