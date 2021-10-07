@@ -28,6 +28,8 @@ cc_cfg = yaml.load(open(args[0], "r"), Loader=yaml.SafeLoader)
 for rse, rse_cfg in cc_cfg["rses"].items():
     if rse == "*":
         continue
+        
+    rse = rse.upper()
     try:
         client.get_rse(rse)
     except RSENotFound:
