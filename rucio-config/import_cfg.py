@@ -29,6 +29,7 @@ for s in sections:
 	else:
 		for k in set(existing_data.keys()) - set(cfg.options(s)):
 			print(f"Deleting key {k}")
+            client.delete_config_option(s, k)
 	for k in cfg.options(s):
 		v = cfg.get(s, k)
 		print(f"Setting value for {k}: {v}")
