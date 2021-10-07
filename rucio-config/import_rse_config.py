@@ -39,6 +39,8 @@ for rse, rse_cfg in cc_cfg["rses"].items():
         else:
             print(f"RSE {rse} does not exist - skipping")
             continue
+    else:
+        print(f"Configuring {rse}")
     attrs = client.list_rse_attributes(rse)
     for k, v in rse_cfg.get("scanner", {}).items():
         k = CONFIG_SECTION_PREFIX + ".scanner." + k
