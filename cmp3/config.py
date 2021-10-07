@@ -79,7 +79,7 @@ class DefaultsConfig(BaseConfig):
         cfg = config_client.get_config(CONFIG_SECTION_PREFIX)
         self.IgnoreList = [x.strip() for x in cfg.get("ignore","").split()]
         self.IgnoreList = [x for x in self.IgnoreList if x]
-        self.NPartitions = int(cfg.get("partitions", 5))
+        self.NPartitions = int(cfg.get("npartitions", 5))
 
         cfg = config_client.get_config(CONFIG_SECTION_PREFIX + ".scanner")
         self.ServerRoot = cfg.get("server_root", "/store/")
