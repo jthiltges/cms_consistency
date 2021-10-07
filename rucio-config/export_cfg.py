@@ -12,7 +12,7 @@ all_sections = client.get_config()
 cfg = ConfigParser()
 
 for section, section_cfg in data.items():
-    if root and (section == root or section.startswith(root+"."):
+    if root and (section == root or section.startswith(root+".")):
         cfg.add_section(section)
         for k, v in section_cfg.items():	
         	cfg.set(section, k, str(v))
