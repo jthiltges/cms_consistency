@@ -9,28 +9,28 @@ section = opts.get("-s")
 cfg = ConfigParser()
 cfg_file = args[0]
 if cfg_file == "-":
-	cfg_file = sys.stdin
+    cfg_file = sys.stdin
 else:
-	cfg_file = open(cfg_file, "r")
+    cfg_file = open(cfg_file, "r")
 cfg.read_file(cfg_file)
 
 if section:
-	sections = [section]
+    sections = [section]
 else:
-	sections = cfg.sections()
+    sections = cfg.sections()
 
 client = ConfigClient()
 for s in sections:
-	print(f"Importing [{s}]...")
-	try:
-		existing_data = client.get_config(s)
-	except ConfigNotFound:
-		print(f"new section [{s}]")
-	else:
-		for k in set(existing_data.keys()) - set(cfg.options(s)):
+    print(f"Importing [{s}]...")
+    try:
+        existing_data = client.get_config(s)
+    except ConfigNotFound:
+        print(f"new section [{s}]")
+    else:
+        for k in set(existing_data.keys()) - set(cfg.options(s)):
             print(f"Deleting key {k}")
             client.delete_config_option(s, k)
-	for k in cfg.options(s):
-		v = cfg.get(s, k)
-		print(f"Setting value for {k}: {v}")
-		client.set_config_option(s, k, v)
+    for k in cfg.options(s):
+        v = cfg.get(s, k)
+        print(f"Setting value for {k}: {v}")
+        client.set_config_option(s, k, v)
