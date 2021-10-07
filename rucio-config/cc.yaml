@@ -1,0 +1,55 @@
+rses:
+  "*": # default
+    include_sizes: no
+    partitions:     5
+    ignore_list:
+        - /store/backfill
+        - /store/test
+        - /store/unmerged
+        - /store/temp
+    scanner:
+      recursion:      1
+      nworkers:        8
+      timeout:        300
+      server_root: /store/
+      remove_prefix: /
+      add_prefix: /store/
+      roots:
+      - path: express
+      - path: mc
+      - path: data
+      - path: generator
+      - path: results
+      - path: hidata
+      - path: himc
+      - path: relval
+    dbdump:
+      path_root:   /
+    #  lfn_to_path:
+    #  - path: "^/+store/(.*)"
+    #    out: "/$1"
+  T0_CH_CERN_Disk:
+    scanner:
+      server: eoscms.cern.ch
+      server_root: /eos/cms/tier0/store/
+  T1_DE_KIT_Disk:
+    scanner:
+      server: cmsxrootd-kit.gridka.de:1094
+  T1_ES_PIC_Disk:
+    scanner:
+      server: xrootd-cmst1-door.pic.es
+  T1_FR_CCIN2P3_Disk:
+    scanner:
+      server: ccxrdcms.in2p3.fr:1094
+      server_root: /pnfs/in2p3.fr/data/cms/disk/data/store/
+  T1_IT_CNAF_Disk:
+    scanner:
+      server: xs-302.cr.cnaf.infn.it
+  T1_RU_JINR_Disk:
+    scanner:
+      server: xrootd01.jinr-t1.ru:1094
+      server_root: /pnfs/jinr-t1.ru/data/cms/store/
+  T1_US_FNAL_Disk:
+    scanner:
+      server: cmsdcadisk.fnal.gov
+      server_root: /dcache/uscmsdisk/store/
