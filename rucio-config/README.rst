@@ -52,7 +52,13 @@ Confuguration Conversion Procedure
             
             $ python import_cfg.py cc_defaults.cfg
             
-    4. Import RSE-specific configuration
+    4. View the results
+    
+        .. code-block:: bash
+            
+            $ python export_cfg.py -s consistency_enforcement
+            
+    5. Import RSE-specific configuration
     
         .. code-block:: bash
             
