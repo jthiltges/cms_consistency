@@ -41,6 +41,13 @@ Confuguration Conversion Procedure
    .. code-block:: bash
         
         $ python import_rse_cfg.py <current_config.yaml>
+        
+6. View the results
+
+   .. code-block:: bash
+        
+        $ rucio-admin rse info <rse>
+
             
 
         
