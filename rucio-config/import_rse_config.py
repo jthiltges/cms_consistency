@@ -7,7 +7,7 @@ CONFIG_SECTION_PREFIX = "consistency_enforcement"
 
 
 Usage = """
-python import_cc_config.py [-c] <config.yaml>
+python import_rse_config.py [-c] <config.yaml>
 
     -c      - create RSE if does not exist
 
