@@ -14,7 +14,7 @@ python import_cc_config.py [-c] <config.yaml>
 """
 
 
-opts, args = getopt.getopt(sys.argv[1:], "")
+opts, args = getopt.getopt(sys.argv[1:], "c")
 if not args:
     print(Usage)
     sys.exit(2)
