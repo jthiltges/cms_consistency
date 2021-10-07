@@ -44,6 +44,6 @@ for rse, rse_cfg in cc_cfg["rses"].items():
         k = CONFIG_SECTION_PREFIX + ".scanner." + k
         if k in attrs:
             client.delete_rse_attribute(rse, k)
-        client.set_rse_attribute(rse, k, v)
+        client.add_rse_attribute(rse, k, v)
 
 
