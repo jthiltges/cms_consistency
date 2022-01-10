@@ -1,11 +1,15 @@
 from rucio.client.configclient import ConfigClient
-import sys, getopt, pprint
+import sys, pprint
 
-opts, args = getopt.getopt(sys.argv[1:], "s:")
-opts = dict(opts)
-section = opts["-s"]
+Usage = """
+python set_config <section> <name> <value>
+"""
 
-name, value = args
+if len(sys.argv[1:]) != 3:
+    print(Usage)
+    sys.exit(2)
+
+section, name, value = sys.argv[1:]
 
 client = ConfigClient(account="root")
 client.set_config_option(section, name, value)

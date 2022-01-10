@@ -1,12 +1,6 @@
 rses:
   "*": # default
-    include_sizes: no
     partitions:     5
-    ignore_list:
-        - /store/backfill
-        - /store/test
-        - /store/unmerged
-        - /store/temp
     scanner:
       recursion:      1
       nworkers:        8
@@ -16,6 +10,9 @@ rses:
       add_prefix: /store/
       roots:
       - path: express
+        ignore: 
+        - path1
+        - path2
       - path: mc
       - path: data
       - path: generator
