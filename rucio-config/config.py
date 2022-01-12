@@ -85,6 +85,7 @@ class ConfigBackend(object):
         # 2. rses->*->param
         scanner_rse = self.get_scanner(rse_name)
         scanner_common = self.get_scanner()
+        #print("scanner_rse:", scanner_rse)
         return self.get_value(param, scanner_rse, scanner_common, default, required)
         
     def format_ignore_list(self, lst):
@@ -130,9 +131,12 @@ class ConfigDictBackend(ConfigBackend):
         for rse, data in cfg.items():
             roots = data.get("scanner", {}).get("roots", [])
             self.Roots[rse] = self.roots_as_dict(roots)
+        #print("ConfigDictBackend.Config:", self.Config)
         #print("ConfigDictBackend.__init__: Roots:", self.Roots)
 
     def get_config(self, rse="*"):
+        cfg = self.Config.get(rse, {})
+        #print(f"get_config({rse}): cfg:", cfg)
         return self.Config.get(rse, {})
         
     def get_root_list(self, rse="*"):
@@ -225,7 +229,7 @@ class ConfigRucioBackend(ConfigBackend):
             cfg = self.RSESpecific.get(rse)
             if cfg is None:
                 cfg = {}
-                try:    cfg = self.RSEClient().list_rse_attributes(rse)
+                try:    cfg = self.RSEClient.list_rse_attributes(rse.upper())
                 except: pass
                 if cfg:
                     cfg = cfg.get(self.CONFIG_SECTION_PREFIX, "{}")
@@ -263,7 +267,10 @@ if __name__ == "__main__":
     if part == "rse":
         print(config.rse_param(rse, param))
     elif part == "scanner":
-        print(config.scanner_param(rse, param))
+        if param == "root_list":
+            print(config.get_root_list(rse))
+        else:
+            print(config.scanner_param(rse, param))
     elif part == "dbdump":
         print(config.dbdump_param(rse, param))
     elif part == "root":

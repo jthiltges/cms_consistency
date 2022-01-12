@@ -49,4 +49,3 @@ rses:
   T1_US_FNAL_Disk:
     scanner:
       server: cmsdcadisk.fnal.gov
-      server_root: /dcache/uscmsdisk/store/
