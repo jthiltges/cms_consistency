@@ -53,8 +53,9 @@ if "scanner" in defaults_in:
     for r in roots_in:
         path = r["path"]
         ignore = r.get("ignore")
+        cp.add_section(f"consistency_enforcement.scanner.root.{path}")
+        cp.set(f"consistency_enforcement.scanner.root.{path}", "path", path)
         if ignore:
-            cp.add_section(f"consistency_enforcement.scanner.root.{path}")
             cp.set(f"consistency_enforcement.scanner.root.{path}", "ignore", " ".join(ignore))
     
 if "dbdump" in defaults_in:
@@ -66,11 +67,9 @@ if "dbdump" in defaults_in:
         
 cp.write(open(out_dir + "/common.cfg", "w"))
 
-for rse, rse_config in config_in.items():
-    if rse == "*":  continue
-    #print(f"RSE {rse} config:")
-    #print(rse_config)
-    with open(out_dir + f"/{rse}.json", "w") as out:
-        json.dump(rse_config, out)
+if "*" in config_in:
+    del config_in["*"]
+    with open(out_dir + "/specifics.json", "w") as out:
+        json.dump(config_in, out, indent=4)
 
     

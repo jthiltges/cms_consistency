@@ -1,3 +1,4 @@
+git_token
 scratch
 *-saved
 .*
@@ -8,6 +9,7 @@ scratch
 Untitled.ipynb
 !RAL/partition.yaml
 !RAL/unmerged_partition.yaml
+tmp/
 
 config.json
 
