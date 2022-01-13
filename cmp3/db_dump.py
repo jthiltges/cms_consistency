@@ -1,7 +1,8 @@
 import getopt, os, time, re, gzip, json, traceback
 import sys, uuid
 
-from config import DBConfig, rse_config
+from config import DBConfig, CCConfiguration
+
 from part import PartitionedList
 
 from sqlalchemy import create_engine
@@ -23,20 +24,21 @@ t0 = time.time()
 #from sqlalchemy import schema
 
 Usage = """
-python db_dump.py [options] -c <config.yaml> <rse_name>
-    -c <config file> -- required
-    -d <db config file> -- required - uses rucio.cfg format. Must contain "default" and "schema" under [databse]
-    -v -- verbose
-    -n <nparts>
+python db_dump.py [options] <rse_name>
+    -c <config file>    -- if not specified, read from Rucio
+    -d <db config file> -- required if reading config from Rucio. Otherwise, reads database section from the YAML config file
+                           uses rucio.cfg format. Must contain "default" and "schema" under [databse]
+    -v                  -- verbose output
+    -n <nparts>         -- number of partitions to split output list
     -f <state>:<prefix> -- filter files with given state to the files set with prefix
-        state can be either combination of capital letters or "*" 
-        can be repeated  ( -f A:/path1 -f CD:/path2 )
-        use "*" for state to send all the files to the output set ( -f *:/path )
-    -l -- include more columns, otherwise physical path only, automatically on if -a is used
-    -z -- produce gzipped output
-    -s <stats file> -- write stats into JSON file
-       -S <key> -- add dump stats to stats under the key
-    -m <N files> -- stop after N files
+                           state can be either combination of capital letters or "*" 
+                           can be repeated  ( -f A:/path1 -f CD:/path2 )
+                           use "*" for state to send all the files to the output set ( -f *:/path )
+    -l                  -- include more columns, otherwise physical path only, automatically on if -a is used
+    -z                  -- produce gzipped output
+    -s <stats file>     -- write stats into JSON file
+       -S <key>         -- add dump stats to stats under the key
+    -m <N files>        -- stop after N files
 """
 
 
@@ -121,7 +123,11 @@ else:
 
 #print("dbconfig: url:", dbconfig.DBURL, "schema:", dbconfig.Schema)
 
-config =  rse_config(rse_name)
+config_file = opts.get("-c")
+if config_file is None:
+    config = CCConfiguration.rse_config(rse_name, "rucio")
+else:
+    config = CCConfiguration.rse_config(rse_name, "yaml", config_file)
 
 stats = None if stats_file is None else Stats(stats_file)
 
@@ -162,7 +168,7 @@ try:
     if not subdir.endswith("/"):    subdir = subdir + "/"
     print(f"Filtering files under {subdir} only")
 
-    _, ignore_file_patterns = config.ignore_patterns()
+    ignore_subdirs = config.DBDumpIgnoreSubdirs
 
     engine = create_engine(dbconfig.DBURL,  echo=verbose)
     Session = sessionmaker(bind=engine)
@@ -206,7 +212,7 @@ try:
             if not filter_re.search(path):
                 continue
             
-        if any(p.match(path) for p in ignore_file_patterns):
+        if any(p.startswith(d+"/") for d in ignore_subdirs):
             continue
             
         words = path.rsplit("/", 1)

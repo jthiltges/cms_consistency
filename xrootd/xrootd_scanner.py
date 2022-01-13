@@ -15,8 +15,6 @@ try:
 except:
     Use_tqdm = False
 
-from config import rse_config
-
 def truncated_path(root, path):
         if path == root:
             return "/"
@@ -41,6 +39,15 @@ def canonic_path(path):
     if path != "/" and path.endswith("/"):
         path = path[:-1]
     return path
+
+def relative_path(root, path):
+    # returns part relative to the root. Returned relative path does NOT have leading slash
+    # if the argument path does not start with root, returns the path unchanged
+    path = canonic_path(path)
+    if path.startswith(root + "/"):
+        path = path[len(root)+1:]
+    return path
+
 
 
 class RMDir(Task):
@@ -213,7 +220,7 @@ class Scanner(Task):
                     is_file, size, path = tup
                     if path.endswith("/."):
                         continue
-                    path if path.startswith(location) else location + "/" + path
+                    #path if path.startswith(location) else location + "/" + path
                     if is_file:
                         files.append((path, size))
                     else:
@@ -276,8 +283,8 @@ class ScannerMaster(PyThread):
     MAX_RECURSION_FAILED_COUNT = 5
     REPORT_INTERVAL = 10.0
     
-    def __init__(self, server, root, recursive_threshold, max_scanners, timeout, quiet, display_progress, ignore_patterns=([],[]), max_files = None,
-                include_sizes=True):
+    def __init__(self, server, root, recursive_threshold, max_scanners, timeout, quiet, display_progress, 
+                ignore_subdirs=[], max_files = None, include_sizes=True):
         PyThread.__init__(self)
         self.RecursiveThreshold = recursive_threshold
         self.Server = server
@@ -305,7 +312,8 @@ class ScannerMaster(PyThread):
             self.LastV = 0
         self.NFiles = self.NDirectories = 0
         self.MaxFiles = max_files       # will stop after number of files found exceeds this number. Used for debugging
-        self.IgnoreDirPatterns, self.IgnoreFilePatterns = ignore_patterns
+        self.IgnoreSubdits = ignore_subdirs
+        self.IgnoredFiles = self.IgnoredDirs = 0
         self.IncludeSizes = include_sizes
         self.TotalSize = 0.0 if include_sizes else None                  # Megabytes
 
@@ -324,11 +332,14 @@ class ScannerMaster(PyThread):
         
     def dir_ignored(self, path):
         # path is expected to be canonic here
-        return any(p.match(path) is not None for p in self.IgnoreDirPatterns)
+        relpath = relative_path(self.Root, path)
+        ignore =  any((relpath == subdir or relpath.startswith(subdir+"/")) for subdir in self.IgnoreSubdirs)
+        return ignore
 
     def file_ignored(self, path):
         # path is expected to be canonic here
-        return any(p.match(path) is not None for p in self.IgnoreFilePatterns)
+        relpath = relative_path(self.Root, path)
+        return any(relpath.startswith(subdir+"/") for subdir in self.IgnoreSubdirs)
 
     @synchronized
     def addFiles(self, files):
@@ -344,8 +355,7 @@ class ScannerMaster(PyThread):
             return parts[0]
             
     def addDirectory(self, path, scan, allow_recursive):
-        if not self.Failed:
-            if scan:
+        if scan and not self.Failed:
                 assert path.startswith(self.Root)
                 relpath = path[len(self.Root):]
                 while relpath and relpath[0] == '/':
@@ -372,7 +382,11 @@ class ScannerMaster(PyThread):
             self.NDirectories += len(dirs)
             for d in dirs:
                 d = canonic_path(d)
-                if not self.dir_ignored(d):
+                if self.dir_ignored(d):
+                    if scan:
+                        print(d, " - ignored")
+                        self.IgnoredDirs += 1
+                else:
                     self.addDirectory(d, scan, allow_recursive)
             self.show_progress()
             self.report()
@@ -444,7 +458,9 @@ class ScannerMaster(PyThread):
             if lst and (type is None or type == t):
                 for path in lst:
                     path = canonic_path(path)
-                    if not self.file_ignored(path):
+                    if self.file_ignored(path):
+                        self.IgnoredFiles += 1
+                    else:
                         if type is None:
                             yield t, path
                         else:
@@ -487,6 +503,7 @@ class ScannerMaster(PyThread):
 Usage = """
 python xrootd_scanner.py [options] <rse>
     Options:
+    -c <config.yaml>            - read configuration from YAML file. If not present, read from Rucio instance
     -o <output file prefix>     - output will be sent to <output>.00000, <output>.00001, ...
     -t <timeout>                - xrdfs ls operation timeout (default 30 seconds)
     -m <max workers>            - default 5
@@ -497,9 +514,6 @@ python xrootd_scanner.py [options] <rse>
     -x                          - do not use metadata (ls -l), do not include file sizes
     -M <max_files>              - stop scanning the root after so many files were found
     -s <stats_file>             - write final statistics to JSON file
-
-    Deprecated:
-    -c <config.yaml>            - config file
 """
 
 def rewrite(path, path_prefix, remove_prefix, add_prefix, path_filter, rewrite_path, rewrite_out):
@@ -568,14 +582,6 @@ def scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_
         remove_prefix = config.RemovePrefix
         add_prefix = config.AddPrefix
         path_filter = rewrite_path = rewrite_out = None
-        if False:
-            path_filter = config.scanner_filter(rse)
-            if path_filter is not None:
-                path_filter = re.compile(path_filter)
-            rewrite_path, rewrite_out = config.scanner_rewrite(rse)
-            if rewrite_path is not None:
-                assert rewrite_out is not None
-                rewrite_path = re.compile(rewrite_path)
 
         print("Starting scan of %s:%s with:" % (server, top_path))
         print("  Include sizes       = %s" % include_sizes)
@@ -583,14 +589,14 @@ def scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_
         print("  Max scanner threads = %d" % max_scanners)
         print("  Timeout             = %s" % timeout)
         
-        ignore_list = config.IgnoreList
+        ignore_list = config.scanner_ignore_subdirs(root)
         if ignore_list:
             print("  Ignore list:")
             for p in ignore_list:
                 print("    ", p)
         
         master = ScannerMaster(server, top_path, recursive_threshold, max_scanners, timeout, quiet, display_progress,
-            max_files = max_files, ignore_patterns = config.ignore_patterns(), include_sizes=include_sizes)
+            max_files = max_files, ignore_subdirs = ignore_list, include_sizes=include_sizes)
         master.start()
 
         path_prefix = server_root
@@ -661,7 +667,7 @@ def scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_
     
 if __name__ == "__main__":
     import getopt, sys, time
-    from config import rse_config
+    from config import CCConfiguration
 
     t0 = time.time()    
     opts, args = getopt.getopt(sys.argv[1:], "t:m:o:R:n:c:vqM:s:S:zd:kx")
@@ -672,8 +678,13 @@ if __name__ == "__main__":
         sys.exit(2)
 
     rse = args[0]
-    #config = Config(opts.get("-c"))
-    config = rse_config(rse)
+
+    config_file = opts.get("-c")
+    if config_file is None:
+        config = CCConfiguration.rse_config(rse, "rucio")
+    else:
+        config = CCConfiguration.rse_config(rse, "yaml", config_file)
+    
     quiet = "-q" in opts
     display_progress = not quiet and "-v" in opts
     override_recursive_threshold = int(opts.get("-R", 0))
@@ -707,7 +718,7 @@ if __name__ == "__main__":
     dir_output = opts.get("-d")
     dir_list = PartitionedList.create(nparts, dir_output, zout) if dir_output else None
 
-    server = config.ServerURL
+    server = config.Server
     server_root = config.ServerRoot
     include_sizes = config.IncludeSizes and not "-x" in opts
 
