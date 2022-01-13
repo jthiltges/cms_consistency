@@ -745,6 +745,7 @@ if __name__ == "__main__":
     
     failed = False
     all_roots_failed = True
+    print("Root list:", config.RootList)
     for root in config.RootList:
         try:
             failed, root_failed = scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_threshold, 

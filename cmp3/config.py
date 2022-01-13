@@ -44,6 +44,7 @@ class ConfigBackend(object):
         raise NotImplementedError()
         
     def get_root_list(self, rse="*"):
+        # returns None if no roots defined for the RSE
         raise NotImplementedError()
         
     def get_root(self, root, rse_name="*"):
@@ -118,6 +119,12 @@ class ConfigBackend(object):
         rse_cfg = self.get_top(rse_name)
         defaults = self.get_top()
         return self.get_value(param, rse_cfg, defaults, default, required)
+
+    def root_list(self, rse):
+        lst = self.get_root_list(rse)
+        if lst is None:
+            lst = self.get_root_list("*") or []
+        return lst
         
 class ConfigYAMLBackend(ConfigBackend):
     
@@ -130,10 +137,11 @@ class ConfigYAMLBackend(ConfigBackend):
         self.Config = cfg
         self.Roots = {}             # {rse -> {root -> root_config}} 
         for rse, data in cfg.items():
-            roots = data.get("scanner", {}).get("roots", [])
-            self.Roots[rse] = self.roots_as_dict(roots)
+            roots = data.get("scanner", {}).get("roots")
+            if roots is not None:
+                self.Roots[rse] = self.roots_as_dict(roots)
         #print("ConfigYAMLBackend.Config:", self.Config)
-        #print("ConfigYAMLBackend.__init__: Roots:", self.Roots)
+        print("ConfigYAMLBackend.__init__: Roots:", self.Roots)
 
     def get_config(self, rse="*"):
         cfg = self.Config.get(rse, {})
@@ -141,7 +149,10 @@ class ConfigYAMLBackend(ConfigBackend):
         return self.Config.get(rse, {})
         
     def get_root_list(self, rse="*"):
-        return list(self.Roots.get(rse, {}).keys())
+        roots = self.Roots.get(rse)
+        if roots is not None:
+            roots = list(roots.keys())
+        return roots
         
     def get_root(self, root, rse="*"):
         return self.Roots.get(rse, {}).get(root)
@@ -195,7 +206,10 @@ class ConfigFilesBackend(ConfigBackend):
         return self.Config.get(rse, {})
         
     def get_root_list(self, rse="*"):
-        return list(self.Roots.get(rse, {}).keys())
+        lst = self.Roots.get(rse)
+        if lst is not None:
+            lst = list(lst.keys())
+        return lst
         
     def get_root(self, root, rse="*"):
         return self.Roots.get(rse, {}).get(root)
@@ -240,12 +254,16 @@ class ConfigRucioBackend(ConfigBackend):
             return cfg
         
     def get_root_list(self, rse="*"):
-        
         if rse == "*":
-            return self.get_config("*").get("scanner", {}).get("roots", "").split()
+            lst = self.get_config("*").get("scanner", {}).get("roots")
+            if lst is not None:
+                lst = lst.split()
         else:
             cfg = self.get_config(rse)  # this will fetch self.RSERoots[rse] as dict
-            return list(self.RSERoots.get(rse, {}).keys())
+            lst = self.RSERoots.get(rse)
+            if lst is not None:
+                lst = list(lst.keys())
+        return lst
             
     def get_root(self, root, rse_name="*"):
         if rse == "*":
@@ -272,18 +290,18 @@ class CCConfiguration(object):
         self.Server = backend.scanner_param(rse, "server", required=True)
         self.ServerRoot = backend.scanner_param(rse, "server_root", "/store", required=True)
         self.ScannerTimeout = int(backend.scanner_param(rse, "timeout", 300))
-        self.RootList = backend.get_root_list(rse)
+        self.RootList = backend.root_list(rse)
         self.RemovePrefix = backend.scanner_param(rse, "remove_prefix", "/")
         self.AddPrefix = backend.scanner_param(rse, "add_prefix", "/store/")
         self.NWorkers = int(backend.scanner_param(rse, "nworkers", 8))
         self.IncludeSizes = backend.scanner_param(rse, "include_sizes", "yes") == "yes"
         self.RecursionThreshold = int(backend.scanner_param(rse, "recursion", 1))
 
-        self.DBDumpPathRoot = backend.dbdump_param("path_root", "/")
-        self.DBDumpIgnoreSubdirs = backend.dbdump_param("ignore", []))
+        self.DBDumpPathRoot = backend.dbdump_param(rse, "path_root", "/")
+        self.DBDumpIgnoreSubdirs = backend.dbdump_param(rse, "ignore", [])
 
     def scanner_ignore_subdirs(self, root):
-        return backend.root_param(self.RSE, root, "ignore", []))
+        return backend.root_param(self.RSE, root, "ignore", [])
 
     @staticmethod
     def rse_config(rse, backend_type, *backend_args):
@@ -293,7 +311,7 @@ class CCConfiguration(object):
             backend = ConfigYAMLBackend(*backend_args)
         else:
             raise ValueError(f"Unknown configuration backend type {backend_type}")
-        return CCConfiguration.RSE_Configs[rse] = CCConfiguration(backend, rse)
+        return CCConfiguration(backend, rse)
 
 if __name__ == "__main__":
     import sys, getopt
@@ -312,7 +330,7 @@ if __name__ == "__main__":
         print(config.rse_param(rse, param))
     elif part == "scanner":
         if param == "root_list":
-            print(config.get_root_list(rse))
+            print(config.root_list(rse))
         else:
             print(config.scanner_param(rse, param))
     elif part == "dbdump":
