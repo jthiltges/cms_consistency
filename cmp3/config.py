@@ -161,15 +161,9 @@ class ConfigYAMLBackend(ConfigBackend):
         #print(f"get_config({rse}): cfg:", cfg)
         return self.Config.get(rse, {})
         
-    def get_root_list(self, rse="*"):
-        roots = self.Roots.get(rse)
-        if roots is not None:
-            roots = list(roots.keys())
-        return roots
+    def get_root_dict(self, rse="*"):
+        return self.Roots.get(rse)
         
-    def get_root(self, root, rse="*"):
-        return self.Roots.get(rse, {}).get(root)
-
 class ConfigRucioBackend(ConfigBackend):
 
     CONFIG_SECTION_PREFIX = "consistency_enforcement"
@@ -183,7 +177,7 @@ class ConfigRucioBackend(ConfigBackend):
         self.ConfigClient = ConfigClient(account=account)
         
         self.Common = None
-        self.CommonRoots = {}
+        self.CommonRoots = None
 
         self.RSESpecific = {}
         self.RSERoots = {}
@@ -194,6 +188,14 @@ class ConfigRucioBackend(ConfigBackend):
                 self.Common = self.ConfigClient.get_config(self.CONFIG_SECTION_PREFIX)
                 scanner = self.Common["scanner"] = self.ConfigClient.get_config(self.CONFIG_SECTION_PREFIX + ".scanner")
                 dbdump = self.Common["dbdump"] = self.ConfigClient.get_config(self.CONFIG_SECTION_PREFIX + ".dbdump")
+                
+                # parse roots config
+                self.CommonRoots = {}
+                for param, value in scanner.items():
+                    if param.startswith("root."):
+                        root_cfg = json.loads(value)
+                        self.CommonRoots[root_cfg["path"]] = root_cfg
+                        
             return self.Common
         else:
             cfg = self.RSESpecific.get(rse)
@@ -211,20 +213,19 @@ class ConfigRucioBackend(ConfigBackend):
                     roots = self.roots_as_dict(roots)
                 self.RSERoots[rse] = roots
             return cfg
-        
-    def get_root_list(self, rse="*"):
+            
+    def get_root_dict(self, rse="*"):
         if rse == "*":
-            lst = self.get_config("*").get("scanner", {}).get("roots")
-            if lst is not None:
-                lst = lst.split()
+            if self.CommonRoots is None:
+                self.get_config()
+                return self.CommonRoots or {}
         else:
             cfg = self.get_config(rse)  # this will fetch self.RSERoots[rse] as dict
             lst = self.RSERoots.get(rse)
             if lst is not None:
                 lst = list(lst.keys())
-        print(f"get_root_list({rse}): lst:", lst)
         return lst
-            
+        
     def get_root(self, root, rse="*"):
         if rse == "*":
             if not root in self.CommonRoots:

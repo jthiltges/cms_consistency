@@ -34,7 +34,7 @@ def set_option(subsection, name, value):
     section = CONFIG_SECTION_PREFIX
     if subsection:  section += "." + subsection
     if isinstance(value, list):
-        value = " ".join(value)
+        value = " ".join(value) or "[]"
     cfg_client.set_config_option(section, name, str(value))
 
 def copy_config(config_in, field, subsection, default=None, required=True):
@@ -57,16 +57,11 @@ if "scanner" in defaults_in:
     copy_config(scanner_in, "add_prefix", "scanner", "/")
     
     roots_in = scanner_in.get("roots")
-    root_paths = [r["path"] for r in roots_in]
-    set_option("scanner", "roots", root_paths)
+    #root_paths = [r["path"] for r in roots_in]
+    #set_option("scanner", "roots", root_paths)
     
-    for r in roots_in:
-        path = r["path"]
-        ignore = r.get("ignore")
-        subsection = f"scanner.root.{path}"
-        set_option(subsection, "path", path)
-        if ignore:
-            set_option(subsection, "ignore", ignore)
+    for i, r in enumerate(roots_in):
+        set_option("scanner", "root.{i}", json.dumps(r))
     
 if "dbdump" in defaults_in:
     dbdump_in = defaults_in["dbdump"]
