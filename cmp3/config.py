@@ -133,9 +133,13 @@ class ConfigBackend(object):
 
     def root_param(self, rse, root, param, default=None, required=False):
         roots_dict = self.get_root_dict(rse)
+        print(f"root_param({rse}, {root}, {param}):")
+        print("  specific roots:", roots_dict)
         if roots_dict is None:
             roots_dict = self.get_root_dict("*") or {}
+            print("  common roots:", roots_dict)
         value = self.get_value(param, roots_dict, {}, default, required)
+        print("  value:", value)
         if param == "ignore": value = self.format_ignore_list(value)
         return value
         
