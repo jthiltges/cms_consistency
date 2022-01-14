@@ -131,7 +131,7 @@ class ConfigBackend(object):
             roots_dict = self.get_root_dict("*") or {}
         return list(roots_dict.keys())
 
-    def root_param(self, rse_name, root, param, default=None, required=False):
+    def root_param(self, rse, root, param, default=None, required=False):
         roots_dict = self.get_root_dict(rse)
         if roots_dict is None:
             roots_dict = self.get_root_dict("*") or {}
