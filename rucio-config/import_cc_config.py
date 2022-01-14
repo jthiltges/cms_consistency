@@ -43,6 +43,17 @@ def copy_config(config_in, field, subsection, default=None, required=True):
     value = config_in.get(field, default)
     if value is not None:
         set_option(subsection, field, value)
+        
+def clear_section(section):
+    section = CONFIG_SECTION_PREFIX if not section else CONFIG_SECTION_PREFIX + "." + section
+    data = cfg_client.get_config(section)
+    if data:
+        for k in data.keys():
+            cfg_client.delete_config_option(section, k)
+
+clear_section("")
+clear_section("scanner")
+clear_section("dbdump")
 
 set_option("", "npartitions", defaults_in.get("partitions", 10))
 
@@ -61,7 +72,7 @@ if "scanner" in defaults_in:
     #set_option("scanner", "roots", root_paths)
     
     for i, r in enumerate(roots_in):
-        set_option("scanner", "root.{i}", json.dumps(r))
+        set_option("scanner", f"root.{i}", json.dumps(r))
     
 if "dbdump" in defaults_in:
     dbdump_in = defaults_in["dbdump"]
