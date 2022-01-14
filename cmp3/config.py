@@ -190,7 +190,7 @@ class ConfigRucioBackend(ConfigBackend):
                 dbdump = self.Common["dbdump"] = self.ConfigClient.get_config(self.CONFIG_SECTION_PREFIX + ".dbdump")
                 
                 # parse roots config
-                self.CommonRoots = json.loads(scanner.get("roots", "{}"))
+                self.CommonRoots = self.roots_as_dict(json.loads(scanner.get("roots", "[]")))
                         
             return self.Common
         else:
