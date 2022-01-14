@@ -214,13 +214,11 @@ class ConfigRucioBackend(ConfigBackend):
         if rse == "*":
             if self.CommonRoots is None:
                 self.get_config()
-                return self.CommonRoots or {}
+            dct = self.CommonRoots or {}
         else:
             cfg = self.get_config(rse)  # this will fetch self.RSERoots[rse] as dict
-            lst = self.RSERoots.get(rse)
-            if lst is not None:
-                lst = list(lst.keys())
-        return lst
+            dct = self.RSERoots.get(rse)
+        return dct
         
     def get_root(self, root, rse="*"):
         if rse == "*":
