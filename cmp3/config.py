@@ -100,8 +100,12 @@ class ConfigBackend(object):
     def root_param(self, rse_name, root, param, default=None, required=False):
         # 1. rses->rse->root->param
         # 2. rses->*->root->param
+        roots = self.scanner_param(rse_name, "roots")
         root_rse = self.get_root(root, rse_name) or {}
         root_common = self.get_root(root)
+        print(f"Backend.root_param({rse_name},{root},{param}):")
+        print("  root_rse:", root_rse)
+        print("  root_common:", root_common)
         value = self.get_value(param, root_rse, root_common, default, required)
         if param == "ignore": value = self.format_ignore_list(value)
         return value
@@ -250,7 +254,11 @@ class ConfigRucioBackend(ConfigBackend):
                     cfg = cfg.get(self.CONFIG_SECTION_PREFIX, "{}")
                     cfg = json.loads(cfg)
                 self.RSESpecific[rse] = cfg
-                self.RSERoots[rse] = self.roots_as_dict(cfg.get("scanner", {}).get("roots", []))
+                roots = cfg.get("scanner", {}).get("roots")
+                print(f"Rucio backend get_config({rse}): roots:", roots)
+                if roots is not None:
+                    roots = self.roots_as_dict(roots)
+                self.RSERoots[rse] = roots
             return cfg
         
     def get_root_list(self, rse="*"):
@@ -263,9 +271,10 @@ class ConfigRucioBackend(ConfigBackend):
             lst = self.RSERoots.get(rse)
             if lst is not None:
                 lst = list(lst.keys())
+        print(f"get_root_list({rse}): lst:", lst)
         return lst
             
-    def get_root(self, root, rse_name="*"):
+    def get_root(self, root, rse="*"):
         if rse == "*":
             if not root in self.CommonRoots:
                 root_cfg = None
@@ -274,9 +283,10 @@ class ConfigRucioBackend(ConfigBackend):
                 self.CommonRoots[root] = root_cfg
             return self.CommonRoots.get(root) or {}
         else:
-            if root not in self.RSERoots:
-                self.get_config(rse_name)       # this will load self.RSERoots[rse_name], if any
-            cfg = self.RSERoots.get(root, {})
+            if rse not in self.RSERoots:
+                self.get_config(rse)       # this will load self.RSERoots[rse_name], if any
+            cfg = (self.RSERoots.get(rse) or {}).get(root)
+            print(f"Rucio backend: get_root({root}, {rse}): cfg:", cfg)
             return cfg
         
 class CCConfiguration(object):
@@ -285,7 +295,7 @@ class CCConfiguration(object):
         self.Backend = backend
         self.RSE = rse
 
-        self.NPartitions = int(backend.rse_param(rse, "partitions"))
+        self.NPartitions = int(backend.rse_param(rse, "npartitions"))
 
         self.Server = backend.scanner_param(rse, "server", required=True)
         self.ServerRoot = backend.scanner_param(rse, "server_root", "/store", required=True)
@@ -301,7 +311,7 @@ class CCConfiguration(object):
         self.DBDumpIgnoreSubdirs = backend.dbdump_param(rse, "ignore", [])
 
     def scanner_ignore_subdirs(self, root):
-        return backend.root_param(self.RSE, root, "ignore", [])
+        return self.Backend.root_param(self.RSE, root, "ignore", [])
 
     @staticmethod
     def rse_config(rse, backend_type, *backend_args):

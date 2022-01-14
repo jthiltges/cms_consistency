@@ -172,9 +172,9 @@ class Scanner(Task):
 
 
         try:    
-            print(f"lscommand: {lscommand}")
+            #print(f"lscommand: {lscommand}")
             retcode, out, err = ShellCommand.execute(lscommand, timeout=timeout)
-            print(f"retcode: {retcode}")
+            #print(f"retcode: {retcode}")
         except RuntimeError:
             status = "timeout"
         else:
@@ -312,7 +312,7 @@ class ScannerMaster(PyThread):
             self.LastV = 0
         self.NFiles = self.NDirectories = 0
         self.MaxFiles = max_files       # will stop after number of files found exceeds this number. Used for debugging
-        self.IgnoreSubdits = ignore_subdirs
+        self.IgnoreSubdirs = ignore_subdirs
         self.IgnoredFiles = self.IgnoredDirs = 0
         self.IncludeSizes = include_sizes
         self.TotalSize = 0.0 if include_sizes else None                  # Megabytes
@@ -590,7 +590,7 @@ def scan_root(rse, root, config, my_stats, stats, stats_key, override_recursive_
         print("  Timeout             = %s" % timeout)
         
         ignore_list = config.scanner_ignore_subdirs(root)
-        if ignore_list:
+        if True or ignore_list:
             print("  Ignore list:")
             for p in ignore_list:
                 print("    ", p)
