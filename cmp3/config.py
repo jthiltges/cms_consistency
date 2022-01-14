@@ -133,14 +133,14 @@ class ConfigBackend(object):
 
     def root_param(self, rse, root, param, default=None, required=False):
         roots_dict = self.get_root_dict(rse)
-        print(f"root_param({rse}, {root}, {param}):")
-        print("  specific roots:", roots_dict)
+        #print(f"root_param({rse}, {root}, {param}):")
+        #print("  specific roots:", roots_dict)
         if roots_dict is None:
             roots_dict = self.get_root_dict("*") or {}
-            print("  common roots:", roots_dict)
+            #print("  common roots:", roots_dict)
         root_config = roots_dict.get(root, {})
         value = self.get_value(param, root_config, {}, default, required)
-        print("  value:", value)
+        #print("  value:", value)
         if param == "ignore": value = self.format_ignore_list(value)
         return value
         
@@ -159,7 +159,7 @@ class ConfigYAMLBackend(ConfigBackend):
             if roots is not None:
                 self.Roots[rse] = self.roots_as_dict(roots)
         #print("ConfigYAMLBackend.Config:", self.Config)
-        print("ConfigYAMLBackend.__init__: Roots:", self.Roots)
+        #print("ConfigYAMLBackend.__init__: Roots:", self.Roots)
 
     def get_config(self, rse="*"):
         cfg = self.Config.get(rse, {})
@@ -209,7 +209,7 @@ class ConfigRucioBackend(ConfigBackend):
                     cfg = json.loads(cfg)
                 self.RSESpecific[rse] = cfg
                 roots = cfg.get("scanner", {}).get("roots")
-                print(f"Rucio backend get_config({rse}): roots:", roots)
+                #print(f"Rucio backend get_config({rse}): roots:", roots)
                 if roots is not None:
                     roots = self.roots_as_dict(roots)
                 self.RSERoots[rse] = roots
@@ -237,7 +237,7 @@ class ConfigRucioBackend(ConfigBackend):
             if rse not in self.RSERoots:
                 self.get_config(rse)       # this will load self.RSERoots[rse_name], if any
             cfg = (self.RSERoots.get(rse) or {}).get(root)
-            print(f"Rucio backend: get_root({root}, {rse}): cfg:", cfg)
+            #print(f"Rucio backend: get_root({root}, {rse}): cfg:", cfg)
             return cfg
         
 class CCConfiguration(object):
@@ -276,29 +276,17 @@ class CCConfiguration(object):
 
 if __name__ == "__main__":
     import sys, getopt
-    opts, args = getopt.getopt(sys.argv[1:], "c:rf:")
+    opts, args = getopt.getopt(sys.argv[1:], "c:r")
     opts = dict(opts)
-    part, rse, param = args[:3]
+    rse, param = args[:2]
     
     if "-c" in opts:
-        config = ConfigYAMLBackend(opts["-c"])
+        backend = ConfigYAMLBackend(opts["-c"])
     elif "-r" in opts:
-        config = ConfigRucioBackend()
-    elif "-f" in opts:
-        config = ConfigFilesBackend(opts["-f"])
+        backend = ConfigRucioBackend()
     
-    if part == "rse":
-        print(config.rse_param(rse, param))
-    elif part == "scanner":
-        if param == "root_list":
-            print(config.root_list(rse))
-        else:
-            print(config.scanner_param(rse, param))
-    elif part == "dbdump":
-        print(config.dbdump_param(rse, param))
-    elif part == "root":
-        root, param = args[2:]
-        print(config.root_param(rse, root, param))
+    cfg = CCConfiguration(backend, rse)
+    print(getattr(cfg, param))
         
         
     
