@@ -70,12 +70,8 @@ if "scanner" in defaults_in:
     copy_config(scanner_in, "remove_prefix", "scanner", "/")
     copy_config(scanner_in, "add_prefix", "scanner", "/")
     
-    roots_in = scanner_in.get("roots")
-    #root_paths = [r["path"] for r in roots_in]
-    #set_option("scanner", "roots", root_paths)
-    
-    for i, r in enumerate(roots_in):
-        set_option("scanner", f"root.{i}", json.dumps(r))
+    roots_in = scanner_in.get("roots", {})
+    set_option("scanner", "roots", json.dumps(roots_in))
     
 if "dbdump" in defaults_in:
     dbdump_in = defaults_in["dbdump"]
