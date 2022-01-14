@@ -46,7 +46,10 @@ def copy_config(config_in, field, subsection, default=None, required=True):
         
 def clear_section(section):
     section = CONFIG_SECTION_PREFIX if not section else CONFIG_SECTION_PREFIX + "." + section
-    data = cfg_client.get_config(section)
+    try:
+        data = cfg_client.get_config(section)
+    except ConfigNotFound:
+        return
     if data:
         for k in data.keys():
             cfg_client.delete_config_option(section, k)
