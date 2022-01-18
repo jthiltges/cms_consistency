@@ -133,40 +133,42 @@ Configuration Conversion
 
    .. code-block:: bash
    
-       $ git pull https://github.com/ivmfnal/cms_consistency.git cms-consistency-new
-       $ cd cms-consistency-new
-       $ git checkout config_in_rucio
-       $ cd rucio-config
+     $ git pull https://github.com/ivmfnal/cms_consistency.git cms-consistency-new
+     $ cd cms-consistency-new
+     $ git checkout config_in_rucio
+     $ cd rucio-config
 
    
-3. Import existing configuration into Rucio:
+3. Import existing configuration into Rucio
 
-    .. code-block:: bash
+  .. code-block:: bash
         
-        $ python import_cc_config.py config.yaml
+    $ python import_cc_config.py config.yaml
 
-    This will create ``consistency_enforcement`` and 2 subsections: ``consistency_enforcement.scanner`` and 
-    ``consistency_enforcement.dbdump``. If these sections existed before, all their contents will be removed and replaced
-    with new values.
+
+  This will create ``consistency_enforcement`` and 2 subsections: ``consistency_enforcement.scanner`` and 
+  ``consistency_enforcement.dbdump``. If these sections existed before, all their contents will be removed and replaced
+  with new values.
     
         
 4. View the results
 
-   .. code-block:: bash
+  .. code-block:: bash
         
-        $ rucio-admin config get
-        $ rucio-admin rse info <RSE name>
+    $ rucio-admin config get
+    $ rucio-admin rse info <RSE name>
+
         
 Running CC tools with old and new configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    .. code-block:: bash
+  .. code-block:: bash
     
-        $ python xrootd_scanner.py -c config.yaml ...          # use the config file
-        $ python xrootd_scanner.py ...                         # use the configuration stored in Rucio
-        
-        $ python db_dump.py -c config.yaml ...                 # use the config file
-        $ python db_dump.py ...                                # use the configuration stored in Rucio
+    $ python xrootd_scanner.py -c config.yaml ...          # use the config file
+    $ python xrootd_scanner.py ...                         # use the configuration stored in Rucio
+    
+    $ python db_dump.py -c config.yaml ...                 # use the config file
+    $ python db_dump.py ...                                # use the configuration stored in Rucio
         
 Configuration structure
 ~~~~~~~~~~~~~~~~~~~~~~~
