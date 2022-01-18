@@ -60,8 +60,8 @@ Currently the toolkit reads configuration in YAML format. Here is the configurat
         dbdump:
           path_root:   /
           ignore:
-              - path1
-              - path2
+              - path/to/ignore_a
+              - path/to/ignore_b
       T0_CH_CERN_Disk:
         scanner:
           include_sizes: no
