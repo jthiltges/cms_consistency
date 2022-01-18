@@ -210,8 +210,8 @@ server_root, string
 remove_prefix, add_prexix - strings
     These two parameters specify the path-to-LFN conversion procedure applied to each file path found by the scanner:
     
-        1. Remove the ``remove_prefix`` from physical path
-        2. Add the ``add_prefix``
+    1. Remove the ``remove_prefix`` from physical path
+    2. Add the ``add_prefix``
         
     Defaults are "/"
     
