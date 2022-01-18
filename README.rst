@@ -1,8 +1,11 @@
 CMS Rucio Consistency Tools
 ===========================
 
+Tools description
+-----------------
+
 XRootD Scanner
---------------
+~~~~~~~~~~~~~~
 The XRootD Scanner is a tool designed to produce the list of files physically found in the RSE. 
 The output of the Scanner is a partitioned list of LFNs for the files found under the set of site "root" directories, recursively.
 The Scanner configuration includes:
@@ -12,13 +15,13 @@ The Scanner configuration includes:
 * for each ``root``, list of subdirectories to ignore, i.e. not to scan and not to include their contents in the output LFN list
 
 Database Replica Dump
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 Database Replica Dump is a tool to dump the list of replica LFNs, which are supposed to be present in the RSE according to the
 Rucio database. The tool is configured to limit results to given top directory in LFN space and optionally to remove
 some subdirectories from the output.
 
 Configuration File
-------------------
+~~~~~~~~~~~~~~~~~~
 
 Currently the toolkit reads configuration in YAML format. Here is the configuration file sample:
 
@@ -110,8 +113,8 @@ Here is the structure of the configuration file for each RSE, including the defa
     database dump
   * ignore: list of strings - list of paths, relative to ``path_root``, to remove from the output.
 
-Moving Consistency Enforcement into Rucio configuration
-=======================================================
+Moving configuration into Rucio
+-------------------------------
 
 Consistency Enformenet Procedures (CEP) will get their configuration from 2 sources in live Rucio instance:
 
@@ -121,8 +124,8 @@ Consistency Enformenet Procedures (CEP) will get their configuration from 2 sour
 - RSE attributes will be used to store RSE-specific parameters such as xrootd server address and server root
   path, list of roots to scan.
 
-Confuguration Conversion Procedure
-----------------------------------
+Configuration Conversion
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. Have Rucio client configured and log in as Rucio root account
 
@@ -154,8 +157,8 @@ Confuguration Conversion Procedure
         $ rucio-admin config get
         $ rucio-admin rse info <RSE name>
         
-Running CC tools with new configuration
----------------------------------------
+Running CC tools with old and new configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     .. code-block:: bash
     
@@ -165,11 +168,11 @@ Running CC tools with new configuration
         $ python db_dump.py -c config.yaml ...                 # use the config file
         $ python db_dump.py ...                                # use the configuration stored in Rucio
         
-Rucio configuration structure
------------------------------
+Configuration structure
+~~~~~~~~~~~~~~~~~~~~~~~
 
 RSE defaults
-============
+............
 
 RSE defaults are stored in the Rucio database, which mimics the .ini file structure, implemented by the standard Python library class
 ConfigParser. The configiration is organized into named sections and each section is a set of named attributes with their values.
@@ -179,13 +182,13 @@ by the CC tools.
 RSE defaults are organized into 3 sections:
 
 Section consistency_enforcement
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
 This section has only one parameter ``npartitions`` - the number of partitions to split file lists into. This parameter is used
 by both DB dump tool and the xrootd scanner.
     
 Section consistency_enforcement.scanner
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
 This section has parameters used only by the xrootd scanner:
 
@@ -217,7 +220,7 @@ roots - string
         * ignore - optional, list of subdirectory paths, relative to the ``root``, to remove from the scanner output
         
 Section consistency_enforcement.dbdump
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 
 This section has parameters used by the DB dump tool:
 
