@@ -162,14 +162,15 @@ Configuration Conversion
 Running CC tools with old and new configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  .. code-block:: bash
+.. code-block:: bash
     
     $ python xrootd_scanner.py -c config.yaml ...          # use the config file
     $ python xrootd_scanner.py ...                         # use the configuration stored in Rucio
     
     $ python db_dump.py -c config.yaml ...                 # use the config file
     $ python db_dump.py ...                                # use the configuration stored in Rucio
-        
+
+
 Configuration structure
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -216,10 +217,10 @@ remove_prefix, add_prexix - strings
     Defaults are "/"
     
 roots - string
-    JSON representation of the list of root configuration dictionaries. Each dictionary contains the following elements:
+    JSON representation of the list of root configuration dictionaries. Each dictionary contains the following elements
     
-        * path - required, path of the ``root``, relative to the ``server_root``
-        * ignore - optional, list of subdirectory paths, relative to the ``root``, to remove from the scanner output
+    * path - required, path of the ``root``, relative to the ``server_root``
+    * ignore - optional, list of subdirectory paths, relative to the ``root``, to remove from the scanner output
         
 Section consistency_enforcement.dbdump
 ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
