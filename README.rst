@@ -208,7 +208,7 @@ server_root, string
     Path to the very top of the server namespace. Scan roots are specified relative to the ``server_root``
     
 remove_prefix, add_prexix - strings
-    These two parameters specify the path-to-LFN conversion procedure applied to each file path found by the scanner:
+    These two parameters specify the path-to-LFN conversion procedure applied to each file path found by the scanner
     
     1. Remove the ``remove_prefix`` from physical path
     2. Add the ``add_prefix``
