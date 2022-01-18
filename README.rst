@@ -141,19 +141,19 @@ Configuration Conversion
    
 3. Import existing configuration into Rucio
 
-  .. code-block:: bash
+.. code-block:: bash
         
     $ python import_cc_config.py config.yaml
 
 
-  This will create ``consistency_enforcement`` and 2 subsections: ``consistency_enforcement.scanner`` and 
-  ``consistency_enforcement.dbdump``. If these sections existed before, all their contents will be removed and replaced
-  with new values.
+This will create ``consistency_enforcement`` and 2 subsections: ``consistency_enforcement.scanner`` and 
+``consistency_enforcement.dbdump``. If these sections existed before, all their contents will be removed and replaced
+with new values.
     
         
 4. View the results
 
-  .. code-block:: bash
+.. code-block:: bash
         
     $ rucio-admin config get
     $ rucio-admin rse info <RSE name>
