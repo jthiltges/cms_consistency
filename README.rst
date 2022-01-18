@@ -146,7 +146,7 @@ Configuration Conversion
     $ python import_cc_config.py config.yaml
 
 
-This will create ``consistency_enforcement`` and 2 subsections: ``consistency_enforcement.scanner`` and 
+This will create ``consistency_enforcement`` section in the Rucio configuration and 2 subsections: ``consistency_enforcement.scanner`` and 
 ``consistency_enforcement.dbdump``. If these sections existed before, all their contents will be removed and replaced
 with new values.
     
