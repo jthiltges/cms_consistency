@@ -131,12 +131,12 @@ Configuration Conversion
 
 2. Pull the code repository
 
-   .. code-block:: bash
-   
-     $ git pull https://github.com/ivmfnal/cms_consistency.git cms-consistency-new
-     $ cd cms-consistency-new
-     $ git checkout config_in_rucio
-     $ cd rucio-config
+.. code-block:: bash
+
+  $ git pull https://github.com/ivmfnal/cms_consistency.git cms-consistency-new
+  $ cd cms-consistency-new
+  $ git checkout config_in_rucio
+  $ cd rucio-config
 
    
 3. Import existing configuration into Rucio
