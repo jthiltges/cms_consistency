@@ -284,11 +284,11 @@ class ScannerMaster(PyThread):
     MAX_RECURSION_FAILED_COUNT = 5
     REPORT_INTERVAL = 10.0
     
-    def __init__(self, server, root, recursive_threshold, max_scanners, timeout, quiet, display_progress, max_files = None,
+    def __init__(self, servers, root, recursive_threshold, max_scanners, timeout, quiet, display_progress, max_files = None,
                 include_sizes=True, ignore_subdirs=[]):
         PyThread.__init__(self)
         self.RecursiveThreshold = recursive_threshold
-        self.Server = server
+        self.Servers = servers
         self.Root = canonic_path(root)
         self.MaxScanners = max_scanners
         self.Results = DEQueue()
@@ -323,7 +323,7 @@ class ScannerMaster(PyThread):
         # scan Root non-recursovely first, if failed, return immediarely
         #
         #server, location, recursive, timeout
-        scanner_task = Scanner(self, self.Server, self.Root, self.RecursiveThreshold == 0, self.Timeout, include_sizes=self.IncludeSizes)
+        scanner_task = Scanner(self, random.choice(self.Servers), self.Root, self.RecursiveThreshold == 0, self.Timeout, include_sizes=self.IncludeSizes)
         self.ScannerQueue.addTask(scanner_task)
         
         self.ScannerQueue.waitUntilEmpty()
@@ -373,7 +373,7 @@ class ScannerMaster(PyThread):
 
                 if self.MaxFiles is None or self.NFiles < self.MaxFiles:
                     self.ScannerQueue.addTask(
-                        Scanner(self, self.Server, path, allow_recursive, self.Timeout, include_sizes=self.IncludeSizes)
+                        Scanner(self, random.choice(self.Servers), path, allow_recursive, self.Timeout, include_sizes=self.IncludeSizes)
                     )
                     self.NToScan += 1
 
@@ -498,7 +498,7 @@ class ScannerMaster(PyThread):
         if self.EmptyDirs:
             queue = TaskQueue(self.MaxScanners)
             for path in self.EmptyDirs:
-                queue.addTask(RMDir(self.Server, path))
+                queue.addTask(RMDir(random.choice(self.Servers), path))
             queue.waitUntilEmpty()
             
 Usage = """
@@ -540,22 +540,22 @@ def rewrite(path, path_prefix, remove_prefix, add_prefix, path_filter, rewrite_p
         path = rewrite_path.sub(rewrite_out, path)   
     return path
 
-def get_data_server(redirector, location, timeout=10):
-    # Query a redirector and return a single registered data server
-    # On failure, return the original server address
+def get_data_servers(redirector, location, timeout=10):
+    # Query a redirector and return a list of registered data servers
+    # On failure, return a list with the original server address
     subp = subprocess.run(['xrdfs', redirector, 'locate', '-m', location],
             timeout=timeout, encoding='utf-8',
             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
     if subp.returncode != 0:
-        return redirector
+        return list(redirector)
 
     servers = [x.split()[0] for x in subp.stdout.splitlines()]
 
     if servers:
-        return random.choice(servers)
+        return servers
     else:
-        return redirector
+        return list(redirector)
 
 def scan_root(rse, server, server_root, root, config, my_stats, stats, stats_key,
     override_recursive_threshold, override_max_scanners, file_list, dir_list,
@@ -615,10 +615,12 @@ def scan_root(rse, server, server_root, root, config, my_stats, stats, stats_key
         print("  Max scanner threads = %d" % max_scanners)
         print("  Timeout             = %s" % timeout)
 
-        # For distributed filesystems, query the redirector and choose a data server
+        # For distributed filesystems, query the redirector for data servers
         if config.scanner_dfs(rse):
-            server = get_data_server(server, top_path, timeout=timeout)
-            print("  Data server         = %s" % server)
+            servers = get_data_servers(server, top_path, timeout=timeout)
+            print("  Data servers        = %s" % ', '.join(servers))
+        else:
+            servers = list(server)
 
         ignore_list = config.ignore_list(rse)
         if ignore_list:
@@ -631,7 +633,7 @@ def scan_root(rse, server, server_root, root, config, my_stats, stats, stats_key
             for p in ignore_subdirs:
                 print("    ", p)
 
-        master = ScannerMaster(server, top_path, recursive_threshold, max_scanners, timeout, quiet, display_progress,
+        master = ScannerMaster(servers, top_path, recursive_threshold, max_scanners, timeout, quiet, display_progress,
             max_files = max_files, include_sizes=include_sizes,
             ignore_subdirs = ignore_subdirs)
         master.start()
